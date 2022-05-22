@@ -1,84 +1,71 @@
 import os
-import time
+from typing import Tuple
 
-import numpy as np
 import cv2
+import numpy as np
 import matplotlib.pyplot as plt
-from skimage.filters import threshold_niblack
-import scipy
-import bottleneck as bn
 
 from src.otsu_method import otsu
-from src.niblack_method import niblack
-from src.utils import otsu_opencv, otsu_skimage
+from src.niblack_method import niblack, modified_niblack
 
 
 def compare_otsu():
-    for i, file_name in enumerate(os.listdir('data/raw/')):
-        print(file_name)
-        test_image = cv2.imread(f'data/raw/{file_name}')
-        test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2GRAY)
+    for i, file_name_with_extension in enumerate(os.listdir('data/raw/')):
 
-        binarized_image, th1 = otsu(test_image, type_of_method='original')
-        binarized_image2, th1_1 = otsu(test_image, type_of_method='modified')
-        #
-        # Otsu's thresholding
-        th2, cv2_binarized_image = cv2.threshold(test_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        image = cv2.imread(f'data/raw/{file_name_with_extension}')
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        th3 = otsu_opencv(test_image)
-        th4 = otsu_skimage(test_image)
-        #
+        binarized_image_otsu, threshold_otsu = otsu(image, type_of_method='original')
+        binarized_image_modified_otsu, threshold_modified_otsu = otsu(image, type_of_method='modified')
 
-        print(f'My realisation otsu {th1}. Modified realisation {th1_1}. Opencv {th2}. Opencv example {th3}. Skimage {th4}')
+        file_name = file_name_with_extension.split('.')[0]
+        cv2.imwrite(f'data/otsu/{file_name}_thr_{threshold_otsu}.jpg', binarized_image_otsu.astype(np.uint8) * 255)
 
-        # plt.subplot(2, 2, 1)
-        # plt.imshow(test_image, cmap='gray')
-        #
-        # plt.subplot(2, 2, 2)
-        # plt.imshow(binarized_image, cmap='gray')
-        #
-        # plt.subplot(2, 2, 3)
-        # plt.imshow(binarized_image2, cmap='gray')
-        #
-        # plt.subplot(2, 2, 4)
-        # plt.imshow(cv2_binarized_image, cmap='gray')
-        # plt.show()
-        # pixels = test_image.ravel()
-        # plt.title(file_name)
-        # plt.hist(pixels, 255)
-        # plt.xlim([0, 255])
-        # plt.show()
+        cv2.imwrite(
+            f'data/otsu_modified/{file_name}_thr_{threshold_modified_otsu}.jpg',
+            binarized_image_modified_otsu.astype(np.uint8) * 255
+        )
+
+        pixels = image.ravel()
+        (unique, counts) = np.unique(pixels, return_counts=True)
+
+        plt.title(file_name)
+        plt.hist(pixels, 255)
+
+        plt.vlines(threshold_otsu, 0, counts.max(), color='m', label='otsu')
+        plt.vlines(threshold_modified_otsu, 0, counts.max(), color='c', label='modified otsu')
+        plt.xlim([0, 255])
+
+        plt.legend()
+        plt.savefig(f'data/histograms/{file_name}.jpg')
+
+        plt.show()
 
 
 def compute_niblack():
-    for i, file_name in enumerate(os.listdir('data/raw/')):
-        print(file_name)
-        test_image = cv2.imread(f'data/raw/{file_name}')
-        test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2GRAY)
+    for i, file_name_with_extension in enumerate(os.listdir('data/raw/')):
 
-        t1 = time.time()
-        thresh_niblack_custom = niblack(test_image)
-        result_custom = test_image > thresh_niblack_custom
-        t2 = time.time()
-        thresh_niblack_skimage = threshold_niblack(test_image, window_size=25)
-        result_skimage = test_image > thresh_niblack_skimage
-        t3 = time.time()
+        image = cv2.imread(f'data/raw/{file_name_with_extension}')
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        plt.subplot(1, 3, 1)
-        plt.title('Original')
-        plt.imshow(test_image, cmap='gray')
+        binarized_image_niblack = niblack(image, window_size=(51, 51), k=-0.5)
+        binarized_image_modified_niblack, _ = modified_niblack(image, window_size=(61, 61), k=-0.2, min_deviation=11)
 
-        plt.subplot(1, 3, 2)
-        plt.title(f'Custom {t2-t1:.2f}')
-        plt.imshow(result_custom, cmap='gray')
+        file_name = file_name_with_extension.split('.')[0]
+        cv2.imwrite(f'data/niblack/{file_name}.jpg', binarized_image_niblack.astype(np.uint8) * 255)
 
-        plt.subplot(1, 3, 3)
-        plt.title(f'Skimage {t3-t2:.2f}')
-        plt.imshow(result_skimage, cmap='gray')
-        plt.show()
-
-        print(bool(np.sum(result_skimage != result_custom) == 0))
+        cv2.imwrite(
+            f'data/niblack_modified/{file_name}.jpg',
+            binarized_image_modified_niblack.astype(np.uint8)
+        )
 
 
 if __name__ == "__main__":
-    compute_niblack()
+    # compute_niblack()
+    # compare_otsu()
+
+    image = cv2.imread(f'data/raw/15.jpg')
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    binarized_image_niblack = niblack(image, window_size=(201, 201), k=-0.5)
+    plt.imshow(binarized_image_niblack, cmap='gray')
+    plt.show()

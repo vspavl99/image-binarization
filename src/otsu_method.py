@@ -1,7 +1,7 @@
 from typing import Union, Tuple
 
-import numpy as np
 import cv2
+import numpy as np
 
 from src.utils import check_image_channels
 
@@ -66,7 +66,7 @@ def compute_modified_otsu_criteria(stats: dict) -> float:
 
     criteria = stats['background_probability_sum'] * np.log(stats['background_probability_sum']) +\
         stats['object_probability_sum'] * np.log(stats['object_probability_sum']) -\
-        np.log(np.sqrt(withinclass_variance))
+        np.log(withinclass_variance)
 
     return criteria
 
