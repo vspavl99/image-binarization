@@ -5,6 +5,8 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from skimage.filters import threshold_niblack
+import scipy
+import bottleneck as bn
 
 from src.otsu_method import otsu
 from src.niblack_method import niblack
@@ -26,8 +28,8 @@ def compare_otsu():
         th3 = otsu_opencv(test_image)
         th4 = otsu_skimage(test_image)
         #
-        print(f'My realisation otsu {th1}. Modified realisation {th1_1}. Opencv {th2}. Opencv example {th3}. Skimage {th4}')
 
+        print(f'My realisation otsu {th1}. Modified realisation {th1_1}. Opencv {th2}. Opencv example {th3}. Skimage {th4}')
 
         # plt.subplot(2, 2, 1)
         # plt.imshow(test_image, cmap='gray')
@@ -46,6 +48,7 @@ def compare_otsu():
         # plt.hist(pixels, 255)
         # plt.xlim([0, 255])
         # plt.show()
+
 
 def compute_niblack():
     for i, file_name in enumerate(os.listdir('data/raw/')):
@@ -74,7 +77,7 @@ def compute_niblack():
         plt.imshow(result_skimage, cmap='gray')
         plt.show()
 
-        print(bool(np.sum(result_skimage != result_custom)))
+        print(bool(np.sum(result_skimage != result_custom) == 0))
 
 
 if __name__ == "__main__":

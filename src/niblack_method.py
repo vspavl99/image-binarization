@@ -1,5 +1,10 @@
+import time
+import matplotlib.pyplot as plt
 import numpy as np
+import scipy.signal
 
+from typing import Tuple
+import bottleneck as bn
 from src.utils import check_image_channels
 
 
@@ -16,21 +21,24 @@ def niblack(image: np.ndarray, window_size: tuple = (25, 25), k: float = -0.2):
         print('Image must be in gray scale!')
         return None
 
-    binarized_image = np.zeros_like(image)
-    image = np.pad(image, ((window_size[0] // 2, window_size[0] // 2), (window_size[1] // 2, window_size[1] // 2)),
-                   mode='reflect')
-    sum_images = np.lib.stride_tricks.sliding_window_view(image, window_shape=window_size)
+    image = image.astype(np.float64)
 
-    for i, _ in enumerate(sum_images):
-        for j, window in enumerate(_):
-            mean = np.mean(window)
-            variance = np.sqrt(np.var(window))
-            threshold = mean + k * variance
+    mean_kernel = np.ones((window_size[0], window_size[1])) / (window_size[0] * window_size[1])
 
-            relative_coord = window_size[0] // 2, window_size[1] // 2
-            absolute_coord = i, j
+    means = scipy.signal.convolve2d(image, mean_kernel, mode='same', boundary='symm')
+    deviations = np.sqrt(
+        scipy.signal.convolve2d(image ** 2, mean_kernel, mode='same', boundary='symm') - means ** 2
+    )
 
-            thresholded_pixel = threshold
-            binarized_image[absolute_coord[0]][absolute_coord[1]] = thresholded_pixel
+    threshold_py_pixel = means + k * deviations
 
-    return binarized_image
+    # padded = np.pad(
+    #     image, ((window_size[0] // 2, window_size[0] // 2), (window_size[1] // 2, window_size[1] // 2)), mode='reflect'
+    # ).astype(np.float32)
+
+    # windows = np.lib.stride_tricks.sliding_window_view(padded, window_shape=window_size)
+    # means = np.mean(windows, axis=(2, 3), dtype=np.float64)
+    # deviations = np.std(windows, axis=(2, 3), dtype=np.float64, dtype=np.float32)
+    # threshold_py_pixel = means + k * deviations
+
+    return threshold_py_pixel
